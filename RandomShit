@@ -1,4 +1,6 @@
-queue_on_teleport([[local minWinstreak = 10
+queue_on_teleport([[
+print("hi")
+local minWinstreak = 10
 local webhookUrl = "https://discord.com/api/webhooks/1266700040366325781/t6RiLwhoYCqBnz69F27AR1cIv70SRibfyyO9rejtnt0UDZL16pt0GKOMEhy4-jd4l6-S"
 local Players = game:GetService("Players")
 local myUser = Players.LocalPlayer.Name
