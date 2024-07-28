@@ -1,0 +1,140 @@
+queue_on_teleport([[local minWinstreak = 10
+local webhookUrl = "https://discord.com/api/webhooks/1266700040366325781/t6RiLwhoYCqBnz69F27AR1cIv70SRibfyyO9rejtnt0UDZL16pt0GKOMEhy4-jd4l6-S"
+local Players = game:GetService("Players")
+local myUser = Players.LocalPlayer.Name
+local opponentName
+local opponentStreak = 0
+
+-- Determine the opponent's name
+for _, player in pairs(Players:GetPlayers()) do
+    if player.Name ~= myUser then
+        opponentName = player.Name
+        break
+    end
+end
+
+if not opponentName then
+    print("Opponent not found.")
+    return
+end
+
+-- Function to send webhook
+local function sendWebhook(url, msg, color)
+    local http = game:GetService("HttpService")
+    local headers = { ["Content-Type"] = "application/json" }
+    local data = {
+        ["embeds"] = {{
+            ["title"] = "",
+            ["color"] = color,
+            ["fields"] = {{
+                ["name"] = "",
+                ["value"] = msg,
+                ["inline"] = true
+            }},
+            ["footer"] = { ["text"] = "Sniper: " .. game:GetService("Players").LocalPlayer.Name }
+        }}
+    }
+    local body = http:JSONEncode(data)
+    request({
+        Url = url,
+        Method = "POST",
+        Headers = headers,
+        Body = body
+    })
+end
+
+-- Check opponent's streak
+local character = workspace:FindFirstChild(opponentName)
+if character and character:FindFirstChild("HumanoidRootPart") then
+    local nametag = character.HumanoidRootPart:FindFirstChild("Nametag")
+    if nametag and nametag:FindFirstChild("Frame") and nametag.Frame:FindFirstChild("Streak") and nametag.Frame.Streak:FindFirstChild("Value") then
+        local streakText = nametag.Frame.Streak.Value.Text
+        if streakText and streakText ~= "" then
+            opponentStreak = tonumber(streakText) or 0
+            print(opponentName .. "'s Streak: " .. streakText)
+        else
+            print(opponentName .. ": No Streak")
+        end
+    else
+        print(opponentName .. ": No Streak")
+    end
+else
+    print(opponentName .. ": No Streak")
+end
+
+-- Handle based on streak
+if opponentStreak < minWinstreak then
+    sendWebhook(webhookUrl, "Below winstreak criteria (" .. minWinstreak .. "). Opponent's winstreak: " .. (opponentStreak or 0), 16711680) -- Red
+    sendWebhook(webhookUrl, "Queueing..", 16056064) -- Yellow
+
+    -- Queue for 1v1
+    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Matchmaking"):WaitForChild("LeaveQueue"):FireServer()
+    local args = { [1] = "1v1" }
+    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Matchmaking"):WaitForChild("JoinQueue"):InvokeServer(unpack(args))
+else
+    -- Start chat logging
+    local TextChatService = game:GetService("TextChatService")
+    local chatLog = {}
+
+    -- Function to handle received messages
+    local function onMessageReceived(msg)
+        if msg.TextSource then
+            local senderName = tostring(msg.TextSource)
+            local message = msg.Text
+            print(senderName .. ": " .. message)
+            table.insert(chatLog, senderName .. ": " .. message)
+        else
+            print("System: " .. msg.Text)
+            table.insert(chatLog, "System: " .. msg.Text)
+        end
+    end
+
+    -- Connect to the MessageReceived event
+    TextChatService.MessageReceived:Connect(onMessageReceived)
+
+    -- Request profile
+    local player = Players:FindFirstChild(opponentName)
+    if player then
+        local args = { [1] = player }
+        local response = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Misc"):WaitForChild("RequestProfile"):InvokeServer(unpack(args))
+
+        -- Process profile response
+        if type(response) == "table" then
+            local function printTable(t, indent)
+                indent = indent or ""
+                for k, v in pairs(t) do
+                    if type(v) == "table" then
+                        if k ~= "FavoriteWeapons" then
+                            print(indent .. k .. ":")
+                            printTable(v, indent .. "  ")
+                        end
+                    else
+                        if k == "WinPercent" then
+                            v = v * 100 .. "%"
+                        end
+                        print(indent .. k .. ": " .. tostring(v))
+                    end
+                end
+            end
+
+            printTable(response)
+
+            -- Wait 2 minutes
+            task.wait(120)
+
+            -- Send success webhook
+            local profileInfo = string.format("Player Data:\nLevel: %s\nWins: %s\nWinrate: %s\n\n```%s```",
+                response.Level, response.Wins, response.WinPercent, table.concat(chatLog, "\n"))
+
+            sendWebhook(webhookUrl, "Successfully Sniped " .. opponentName .. "'s Winstreak! " .. opponentStreak, 65280) -- Green
+            sendWebhook(webhookUrl, profileInfo, 65280) -- Green
+        else
+            print("Player profile response is not a table.")
+        end
+    else
+        print("Player not found.")
+    end
+
+    -- Load external script
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/SkibidiCen/RivalsAutoFarmNice/main/Code"))()
+end]])
